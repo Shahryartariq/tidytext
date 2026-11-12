@@ -1,6 +1,6 @@
 [project]
 name = "tidytext"
-version = "1.0.0"
+version = "1.1.0"
 description = "Clean up messy text: fix line breaks, extra spaces, invisible characters and letter case."
 readme = "README.md"
 license = "MIT"
