@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-12
+
 ### Added
+- Google Search Console ownership file, so the site stays verified.
 - The starting text is labelled "Example", and pasting over it replaces it instead of
   mixing your text into it.
 - "Reset options" appears once you change the options, and returns to the page's preset.
