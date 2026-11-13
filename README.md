@@ -8,7 +8,7 @@
 
 Fix broken line breaks from PDFs, extra spaces, duplicate lines, invisible characters and letter case, count words, and more. Free, instant, and private: your text never leaves your browser.
 
-[![CI](https://github.com/Shahryartariq/django-text-formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/Shahryartariq/django-text-formatter/actions/workflows/ci.yml)
+[![CI](https://github.com/Shahryartariq/tidytext/actions/workflows/ci.yml/badge.svg)](https://github.com/Shahryartariq/tidytext/actions/workflows/ci.yml)
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white)
 ![Django 6.1](https://img.shields.io/badge/Django-6.1-0c4b33?logo=django&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-f7df1e?logo=javascript&logoColor=black)
@@ -16,7 +16,7 @@ Fix broken line breaks from PDFs, extra spaces, duplicate lines, invisible chara
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[Deploy your own](#deploy-to-vercel) · [Report a bug](https://github.com/Shahryartariq/django-text-formatter/issues) · [Request a tool](https://github.com/Shahryartariq/django-text-formatter/issues)
+[Deploy your own](#deploy-to-vercel) · [Report a bug](https://github.com/Shahryartariq/tidytext/issues) · [Request a tool](https://github.com/Shahryartariq/tidytext/issues)
 
 </div>
 
@@ -139,7 +139,7 @@ flowchart LR
 **Requirements:** Python 3.12+, `make`, and Node.js 20+ for the JavaScript tests. On Windows, `make` works from PowerShell, cmd or Git Bash as long as [Git for Windows](https://git-scm.com/download/win) is installed (the recipes run in its bash). WSL or Docker work too.
 
 ```bash
-git clone https://github.com/Shahryartariq/django-text-formatter.git tidytext
+git clone https://github.com/Shahryartariq/tidytext.git tidytext
 cd tidytext
 make install   # create .venv and install dependencies
 make dev       # http://localhost:8000

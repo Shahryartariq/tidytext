@@ -12,7 +12,7 @@ class PageTests(SimpleTestCase):
     def test_home_renders_with_example_already_cleaned(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "<h1>Clean up messy text in seconds</h1>", html=True)
+        self.assertContains(response, "<h1>Clean up copied text</h1>", html=True)
         self.assertContains(response, 'rel="canonical" href="http://testserver/"')
         self.assertContains(response, "TidyText fixes it.")
 
