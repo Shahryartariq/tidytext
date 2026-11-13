@@ -1,27 +1,22 @@
 {% extends "base.html" %}
 
 {% block title %}About TidyText{% endblock %}
-{% block description %}TidyText is a free, private tool for cleaning up messy text: line breaks, extra spaces, invisible characters and letter case.{% endblock %}
+{% block description %}TidyText is a free, private tool for cleaning up messy text: line breaks, extra spaces, hidden characters and letter case.{% endblock %}
 {% block og_title %}About TidyText{% endblock %}
 
 {% block content %}
 <article class="prose">
   <h1>About {{ app_name }}</h1>
-  <p class="lede">{{ app_name }} fixes the small, annoying problems text picks up when you copy it from one place to another.</p>
+  <p class="lede">{{ app_name }} fixes the mess text picks up when you copy it from one place to another.</p>
 
   <h2>Why it exists</h2>
-  <p>Text copied from a PDF breaks at the end of every printed line. Text from a web page brings hidden characters and odd spaces. Text typed with caps lock on needs retyping. Each fix takes seconds here, without installing anything or signing up.</p>
+  <p>Text copied from a PDF breaks at the end of every printed line. Text from a web page brings hidden characters and odd spaces. Text typed with caps lock on has to be retyped. {{ app_name }} fixes each of these in a few clicks, without installing anything or signing up.</p>
+  <p>There are {{ tools|length }} tools, from fixing PDF text to sorting lists and counting words. They all use the same editor, so you can combine them: join broken lines, remove extra spaces and fix the letter case in one go.</p>
 
-  <h2>What makes it different</h2>
-  <ul>
-    <li><strong>Private by design.</strong> Your text is cleaned in your browser and never uploaded. There are no accounts{% if not analytics_enabled %}, cookies or trackers{% endif %}.</li>
-    <li><strong>Instant.</strong> The result updates as you type or change an option.</li>
-    <li><strong>{{ tools|length }} tools in one place.</strong> Fix PDF text, remove duplicates, sort lists, strip HTML, find and replace, count words and more, and combine them freely.</li>
-    <li><strong>Honest about changes.</strong> You see exactly how many characters, words and lines were removed.</li>
-    <li><strong>Works everywhere.</strong> On phones, tablets and computers, with or without JavaScript.</li>
-  </ul>
+  <h2>What happens to your text</h2>
+  <p>Nothing leaves your browser. Your text is cleaned on your device as you type, and there are no accounts{% if not analytics_enabled %}, cookies or trackers{% endif %}. The counts under each box show exactly how many characters, words and lines changed. The <a href="{% url 'privacy' %}">privacy page</a> has the details.</p>
 
   <h2>Who made it</h2>
-  <p>{{ app_name }} is built and maintained by <a href="https://github.com/Shahryartariq" rel="noopener">Muhammad Shehryar</a>, a full-stack developer. Found a problem or have an idea for a tool? <a href="https://github.com/Shahryartariq" rel="noopener">Get in touch on GitHub</a>.</p>
+  <p>{{ app_name }} is built and maintained by <a href="https://github.com/Shahryartariq" rel="noopener">Muhammad Shehryar</a>, a full-stack developer. Found a bug or want a new tool? <a href="https://github.com/Shahryartariq/tidytext/issues" rel="noopener">Open an issue on GitHub</a>.</p>
 </article>
 {% endblock %}

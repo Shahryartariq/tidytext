@@ -21,6 +21,7 @@ class Tool:
     summary: str  # one line for tool lists
     options: Options
     example: str
+    group: str = "Lines"  # heading in the tool list: Lines, Spaces and characters, Letter case, Writing
     faqs: tuple[tuple[str, str], ...] = field(default_factory=tuple)
     show_find: bool = False  # open the find and replace panel
     show_details: bool = False  # open the word count panel
@@ -39,11 +40,11 @@ HOME = Tool(
         "Fix line breaks, extra spaces and letter case in text copied from PDFs, emails "
         "and websites. Free, instant, and your text never leaves your browser."
     ),
-    heading="Clean up messy text in seconds",
+    heading="Clean up copied text",
     summary="Fix line breaks, spaces and case in one go.",
     intro=(
-        "Paste text from a PDF, email or web page, choose what to fix, then copy the clean "
-        "version. It all happens instantly in your browser."
+        "Paste text from a PDF, email or web page, pick what to fix and copy the clean "
+        "version. Your text stays in your browser."
     ),
     options=_opts("paragraphs", "keep", "remove_extra_spaces", "remove_invisible", "fix_hyphenation"),
     example=(
@@ -82,7 +83,7 @@ TOOLS: tuple[Tool, ...] = (
                 "paragraphs is kept, so the structure of the document stays intact.",
             ),
             (
-                "What does “Fix hyphenated words” do?",
+                "What does “Rejoin split words” do?",
                 "PDFs often split a long word across two lines with a hyphen, like “infor-” "
                 "and “mation”. This joins them back into one word. It only joins when the next "
                 "line starts with a small letter, so names like “North-America” stay as they "
@@ -115,13 +116,13 @@ TOOLS: tuple[Tool, ...] = (
             ),
             (
                 "Can I keep my paragraphs?",
-                "Yes. Choose “Join lines, keep paragraphs” under Line breaks, or use the Fix "
-                "PDF line breaks tool.",
+                "Yes. Choose “Join lines, keep paragraphs” under Lines, or use the Fix PDF line breaks tool.",
             ),
         ),
     ),
     Tool(
         slug="remove-extra-spaces",
+        group="Spaces and characters",
         name="Remove extra spaces",
         title="Remove Extra Spaces From Text Online",
         description=(
@@ -140,7 +141,7 @@ TOOLS: tuple[Tool, ...] = (
             (
                 "Does this remove line breaks too?",
                 "No. Only spaces and tabs within each line are changed. To remove line "
-                "breaks as well, change the Line breaks option.",
+                "breaks as well, choose “Put everything on one line” under Lines.",
             ),
             (
                 "What is a non-breaking space?",
@@ -174,6 +175,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="remove-punctuation",
+        group="Spaces and characters",
         name="Remove punctuation",
         title="Remove Punctuation From Text Online",
         description=(
@@ -203,6 +205,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="remove-invisible-characters",
+        group="Spaces and characters",
         name="Remove invisible characters",
         title="Remove Invisible Characters: Zero-Width Spaces and More",
         description=(
@@ -232,17 +235,18 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="ai-text-humanizer",
+        group="Writing",
         name="AI text humanizer",
         title="Free AI Text Humanizer: Make AI Writing Sound Human",
         description=(
             "Rewrite stiff, AI-sounding text so it reads like a person typed it: plain words, "
-            "contractions and everyday slips. Free, instant, and nothing is uploaded."
+            "contractions and a few everyday typos. Free, and nothing is uploaded."
         ),
         heading="Make AI text sound human",
-        summary="Plain words, contractions and everyday slips.",
+        summary="Plain words, contractions and a few typos.",
         intro=(
-            "Paste text from ChatGPT or any AI writer. Stiff phrases become plain words, “you "
-            "are” becomes “you're”, and then the slips real people make: “your good”."
+            "Paste text from ChatGPT or another AI writer. Stiff phrases become plain words, "
+            "“you are” becomes “you're”, and a few everyday typos are added, like “your good”."
         ),
         options=_opts("keep", "keep", "humanize"),
         ai_paraphrase=True,
@@ -280,6 +284,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="paraphrasing-tool",
+        group="Writing",
         name="Paraphrasing tool",
         title="Free Paraphrasing Tool: Reword Text Online, Private",
         description=(
@@ -329,6 +334,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="grammar-fixer",
+        group="Writing",
         name="Grammar fixer",
         title="Grammar Fixer: Fix Common Grammar Mistakes Free",
         description=(
@@ -338,8 +344,8 @@ TOOLS: tuple[Tool, ...] = (
         heading="Fix common grammar mistakes",
         summary="Your good → you're good, dont → don't.",
         intro=(
-            "Fixes the small slips everyone makes when typing fast, especially in South Asian "
-            "English, from “your welcome” to “since 2 years”. It only changes what it's sure of."
+            "Fixes the slips people make when typing fast, especially in South Asian English, "
+            "from “your welcome” to “since 2 years”. It only changes what it's sure of."
         ),
         options=_opts("keep", "keep", "fix_grammar"),
         example=(
@@ -370,6 +376,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="word-counter",
+        group="Writing",
         name="Word counter",
         title="Word Counter: Count Words, Characters and Reading Time",
         description=(
@@ -407,7 +414,7 @@ TOOLS: tuple[Tool, ...] = (
         title="Remove Duplicate Lines Online: Keep Unique Lines",
         description=(
             "Delete repeated lines from a list and keep the first copy of each, in the "
-            "original order. Great for emails, keywords and data. Free and private."
+            "original order. Useful for email lists, keywords and data. Free and private."
         ),
         heading="Remove duplicate lines",
         summary="Keep only the first copy of each line.",
@@ -460,6 +467,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="find-and-replace",
+        group="Spaces and characters",
         name="Find and replace",
         title="Find and Replace Text Online: Free and Instant",
         description=(
@@ -490,7 +498,8 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="smart-quotes-to-straight-quotes",
-        name="Straight quotes",
+        group="Spaces and characters",
+        name="Straighten curly quotes",
         title="Convert Smart Quotes to Straight Quotes Online",
         description=(
             "Replace curly “smart” quotes, apostrophes, en and em dashes and ellipses with "
@@ -514,6 +523,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="remove-html-tags",
+        group="Spaces and characters",
         name="Remove HTML tags",
         title="Remove HTML Tags: Convert HTML to Plain Text",
         description=(
@@ -545,42 +555,45 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="uppercase-converter",
-        name="UPPERCASE",
+        group="Letter case",
+        name="Uppercase",
         title="Uppercase Converter: Convert Text to ALL CAPS",
         description=(
             "Convert any text to UPPERCASE letters instantly. Works with accented letters "
             "and any language. Free and private."
         ),
         heading="Convert text to uppercase",
-        summary="MAKE EVERY LETTER A CAPITAL.",
+        summary="Make every letter a capital.",
         intro="Change every letter to a capital letter. Numbers and symbols stay the same.",
         options=_opts("keep", "upper"),
         example="Meeting moved to Friday, 3 pm.",
     ),
     Tool(
         slug="lowercase-converter",
-        name="lowercase",
+        group="Letter case",
+        name="Lowercase",
         title="Lowercase Converter: Convert Text to Lowercase",
         description=(
             "Convert text to lowercase letters instantly, including text written in ALL "
             "CAPS. Free, private and works in any language."
         ),
         heading="Convert text to lowercase",
-        summary="make every letter small.",
+        summary="Make every letter small.",
         intro="Change every capital letter to a small letter, including text typed in caps lock.",
         options=_opts("keep", "lower"),
         example="SORRY FOR SHOUTING, CAPS LOCK WAS ON.",
     ),
     Tool(
         slug="title-case-converter",
-        name="Title Case",
+        group="Letter case",
+        name="Title case",
         title="Title Case Converter: Capitalize Every Word",
         description=(
             "Capitalize the first letter of every word for headings and titles. Handles "
             "apostrophes and hyphenated words. Free and private."
         ),
         heading="Convert text to title case",
-        summary="Capitalize The First Letter Of Every Word.",
+        summary="Capitalize the first letter of each word.",
         intro=(
             "Capitalize the first letter of every word and make the rest lowercase. "
             "Apostrophes are handled, so “it's” never becomes “It'S”."
@@ -597,6 +610,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         slug="sentence-case-converter",
+        group="Letter case",
         name="Sentence case",
         title="Sentence Case Converter: Fix Capitalization Online",
         description=(
@@ -626,9 +640,8 @@ TOOLS_BY_SLUG = {tool.slug: tool for tool in TOOLS}
 COMMON_FAQS: tuple[tuple[str, str], ...] = (
     (
         "Is my text saved or sent anywhere?",
-        "No. With JavaScript turned on, your text is processed entirely in your browser and "
-        "never leaves your device. If JavaScript is off, the text is sent to our server only "
-        "to format it, and is never saved or logged.",
+        "No. Your text is cleaned in your browser and never leaves your device. If JavaScript "
+        "is turned off, it's sent to the server only to be cleaned, and is never saved or logged.",
     ),
     (
         "Is TidyText free?",

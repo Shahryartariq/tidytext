@@ -7,10 +7,10 @@
 {% block content %}
 <article class="prose">
   <h1>Privacy policy</h1>
-  <p class="lede">Short version: your text is yours. {{ app_name }} never stores it or sends it anywhere{% if analytics_enabled %}. We use Google Analytics to count visits{% else %}, doesn't track you and doesn't use cookies{% endif %}.</p>
+  <p class="lede">{{ app_name }} never stores your text or sends it anywhere{% if analytics_enabled %}. Google Analytics counts visits, but never sees your text{% else %}. It doesn't track you and doesn't use cookies{% endif %}.</p>
 
   <h2>Your text</h2>
-  <p>With JavaScript turned on, which is the case for almost every browser, all cleaning happens on your own device. Your text is never sent to our servers.</p>
+  <p>With JavaScript turned on, as it is in almost every browser, all cleaning happens on your own device. Your text is never sent to our servers.</p>
   <p>If JavaScript is turned off, the text is sent to our server only to be cleaned and returned to you. It is not saved, logged or shared, and it is gone as soon as the page is sent back.</p>
   <p>Files you open or drop into {{ app_name }} are read by your browser on your device. They are never uploaded.</p>
 
@@ -30,6 +30,6 @@
   <p>Like any website, our hosting provider records basic technical information about requests, such as the page address, time and IP address, to keep the service secure and running. These logs never contain the text you clean.</p>
 
   <h2>Contact</h2>
-  <p>Questions about privacy? <a href="https://github.com/Shahryartariq" rel="noopener">Contact the developer on GitHub</a>.</p>
+  <p>Questions about privacy? <a href="https://github.com/Shahryartariq/tidytext/issues" rel="noopener">Open an issue on GitHub</a>.</p>
 </article>
 {% endblock %}

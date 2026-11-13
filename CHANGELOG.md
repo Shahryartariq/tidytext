@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+- Calmer, roomier layout. The options sit in a sidebar next to the text, grouped into Lines,
+  Spaces and characters, and Wording, with plain checkboxes instead of a cloud of chips.
+- On phones the clean text comes straight after your text, and the options follow.
+- Plainer copy throughout, without the badge row, the "How it works" steps or repeated claims.
+- The tool list is grouped (Lines, Spaces and characters, Letter case, Writing), and the footer
+  no longer repeats every tool.
+- New typeface: Atkinson Hyperlegible Next for the page and Atkinson Hyperlegible Mono for the
+  text boxes, self-hosted (SIL Open Font License).
+- Links point to the renamed repository, github.com/Shahryartariq/tidytext.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added
