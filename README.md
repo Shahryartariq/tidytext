@@ -172,7 +172,7 @@ Run `make` on its own to see this list in your terminal.
 ## Testing and quality
 
 ```bash
-make test    # 62 Python tests + 87 JavaScript tests (59 shared cases, worst-case timing)
+make test    # 65 Python tests + 87 JavaScript tests (59 shared cases, worst-case timing)
 make lint    # Ruff: style, bugs and security rules
 make check   # Django production checks (HTTPS, HSTS, secret key, ...)
 make audit   # pip-audit on the runtime dependencies

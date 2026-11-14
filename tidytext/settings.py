@@ -9,6 +9,7 @@ TidyText is stateless: no database, no sessions, no cookies, no user accounts.
 
 import os
 import re
+import secrets
 import warnings
 from pathlib import Path
 
@@ -40,6 +41,11 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = "dev-only-insecure-key-do-not-use-in-production"
+    elif os.environ.get("VERCEL_ENV") == "preview":
+        # Pull request previews usually have no secrets configured. TidyText signs nothing
+        # (no sessions, cookies or tokens), so a random key per instance is safe there.
+        # Production still refuses to start without a real key.
+        SECRET_KEY = secrets.token_urlsafe(50)
     else:
         raise ImproperlyConfigured(
             "DJANGO_SECRET_KEY is not set. Generate one with `make secret` and add it to your "

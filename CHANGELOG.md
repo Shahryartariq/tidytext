@@ -47,6 +47,9 @@
 - Open Graph text no longer uses the old "in seconds" line.
 
 ### CI and releases
+- Pull request previews on Vercel crashed on every page ("DJANGO_SECRET_KEY is not set"),
+  because the key is only set for Production. Previews now use a random key per instance
+  (TidyText signs nothing, so that's safe); production still refuses to start without one.
 - The Docker smoke test checked for the old headline, so it failed after the copy changes. It
   now checks that the form renders and that a no-JavaScript post is cleaned.
 - New browser tests (Playwright) cover the main flows: typing, word count, paste, copy,
