@@ -1100,5 +1100,179 @@
       "reading_seconds": 59,
       "speaking_seconds": 93
     }
+  },
+  {
+    "name": "duplicates removed after lowercase",
+    "input": "Apple\napple\nBanana\nBANANA",
+    "options": {
+      "case": "lower",
+      "flags": [
+        "remove_duplicate_lines"
+      ]
+    },
+    "expected": "apple\nbanana",
+    "stats": {
+      "characters": 12,
+      "words": 2,
+      "lines": 2
+    },
+    "details": {
+      "characters_no_spaces": 11,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 1,
+      "speaking_seconds": 1
+    }
+  },
+  {
+    "name": "duplicates removed after extra spaces",
+    "input": "a  b\na b\n",
+    "options": {
+      "flags": [
+        "remove_extra_spaces",
+        "remove_duplicate_lines"
+      ]
+    },
+    "expected": "a b\n",
+    "stats": {
+      "characters": 4,
+      "words": 2,
+      "lines": 2
+    },
+    "details": {
+      "characters_no_spaces": 2,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 1,
+      "speaking_seconds": 1
+    }
+  },
+  {
+    "name": "sentence case after blank lines and quotes",
+    "input": "\n\n\n  \"hello there. what?\n\n(new) para. i agree.",
+    "options": {
+      "case": "sentence"
+    },
+    "expected": "\n\n\n  \"Hello there. What?\n\n(New) para. I agree.",
+    "stats": {
+      "characters": 46,
+      "words": 7,
+      "lines": 6
+    },
+    "details": {
+      "characters_no_spaces": 34,
+      "sentences": 4,
+      "paragraphs": 2,
+      "reading_seconds": 2,
+      "speaking_seconds": 3
+    }
+  },
+  {
+    "name": "sentence case keeps leading spaces",
+    "input": "   one. two!   three",
+    "options": {
+      "case": "sentence"
+    },
+    "expected": "   One. Two!   Three",
+    "stats": {
+      "characters": 20,
+      "words": 3,
+      "lines": 1
+    },
+    "details": {
+      "characters_no_spaces": 13,
+      "sentences": 3,
+      "paragraphs": 1,
+      "reading_seconds": 1,
+      "speaking_seconds": 2
+    }
+  },
+  {
+    "name": "unclosed comment is kept",
+    "input": "a <!-- b <!-- c --> d <!-- e",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    },
+    "expected": "a  d <!-- e",
+    "stats": {
+      "characters": 11,
+      "words": 4,
+      "lines": 1
+    },
+    "details": {
+      "characters_no_spaces": 7,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 2,
+      "speaking_seconds": 2
+    }
+  },
+  {
+    "name": "unclosed script is kept, closed one removed",
+    "input": "<script>x</script>keep <style>y</style>this <script>never closed",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    },
+    "expected": "keep this never closed",
+    "stats": {
+      "characters": 22,
+      "words": 4,
+      "lines": 1
+    },
+    "details": {
+      "characters_no_spaces": 19,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 2,
+      "speaking_seconds": 2
+    }
+  },
+  {
+    "name": "mixed-case script and style tags",
+    "input": "<SCRIPT type=\"a\">x</Script >A<Style>b</STYLE>B",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    },
+    "expected": "AB",
+    "stats": {
+      "characters": 2,
+      "words": 1,
+      "lines": 1
+    },
+    "details": {
+      "characters_no_spaces": 2,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 1,
+      "speaking_seconds": 1
+    }
+  },
+  {
+    "name": "half tags next to real ones",
+    "input": "<a<b>text</b> 1 < 2 <i",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    },
+    "expected": "<atext 1 < 2 <i",
+    "stats": {
+      "characters": 15,
+      "words": 5,
+      "lines": 1
+    },
+    "details": {
+      "characters_no_spaces": 11,
+      "sentences": 1,
+      "paragraphs": 1,
+      "reading_seconds": 2,
+      "speaking_seconds": 2
+    }
   }
 ]

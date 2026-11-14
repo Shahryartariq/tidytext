@@ -12,6 +12,12 @@ class PageSitemap(Sitemap):
     def protocol(self):
         return "http" if settings.DEBUG else "https"
 
+    def get_domain(self, site=None):
+        # List the public address (SITE_URL), whichever host the sitemap was fetched from.
+        if settings.SITE_URL:
+            return settings.SITE_URL.split("://", 1)[-1].split("/", 1)[0]
+        return super().get_domain(site)
+
     def items(self):
         return (
             [("home", None, 1.0)]

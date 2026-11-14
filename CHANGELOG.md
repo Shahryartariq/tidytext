@@ -13,6 +13,48 @@
   text boxes, self-hosted (SIL Open Font License).
 - Links point to the renamed repository, github.com/Shahryartariq/tidytext.
 
+### Fixed
+- The word count panel now follows your text as you type. It only updated after a page reload.
+- The theme button switches between light and dark on the first click and shows a sun or moon.
+  Before, the first click often changed nothing visible.
+- With JavaScript off, Copy, Download and Clear are hidden instead of doing nothing.
+- Remove duplicate lines runs after Letter case, so "Apple" and "apple" count as the same line
+  once lowercased, as the FAQ says.
+- Reaching the 200,000 character limit now shows a message instead of silently ignoring text.
+- A text post over the size limit without JavaScript gets the form back with a clear message
+  instead of a bare "Bad Request" page. The limit is raised to 4 MB, so 200,000 characters of
+  Urdu or Chinese text (which grow when URL-encoded) are accepted.
+- Copy falls back to telling you to press Ctrl+C when the browser blocks clipboard access.
+- Opening a binary file renamed to .txt shows "That file isn't plain text" instead of garbage.
+
+### Security
+- Removing HTML tags and sentence case could take minutes on hostile input (for example 50,000
+  copies of `<!--`), which let a single no-JavaScript request tie up a server worker and froze
+  the browser tab. Both now run in linear time, and tests time every option against 200,000
+  characters of worst-case input in Python and JavaScript.
+- Find and replace refuses results over 1,000,000 characters. Replacing every "a" in 200,000
+  characters with 1,000 characters used to build a 200 MB response.
+- Workflow actions are pinned to commit SHAs, checkouts don't keep credentials, every job has a
+  timeout, and CI runs `pip-audit`. Dependabot proposes updates for pip, Actions, Docker and npm.
+- SECURITY.md now describes the third-party code the AI paraphraser loads, and links to the
+  renamed repository.
+
+### SEO and performance
+- Vercel's per-deploy and per-branch addresses send `X-Robots-Tag: noindex`, and the sitemap
+  always lists the public address, so search engines only index one copy of each page.
+- Static files are cached for a year (they're versioned per deploy), the bold font and the
+  cleaning script are preloaded, and the web app manifest matches the new colours.
+- Open Graph text no longer uses the old "in seconds" line.
+
+### CI and releases
+- The Docker smoke test checked for the old headline, so it failed after the copy changes. It
+  now checks that the form renders and that a no-JavaScript post is cleaned.
+- New browser tests (Playwright) cover the main flows: typing, word count, paste, copy,
+  Ctrl+Enter, open and drop files, download, clear, options and reset, find and replace, theme,
+  every page on desktop and phone, the 404 page, and the no-JavaScript fallback.
+- A release only publishes its Docker image if the tag matches `pyproject.toml` and the full CI
+  passes on the tagged commit. Images now include provenance and an SBOM.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added

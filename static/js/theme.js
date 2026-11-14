@@ -2,19 +2,20 @@
 (() => {
   const root = document.documentElement;
   const KEY = "tidytext-theme";
-  const ORDER = ["auto", "light", "dark"];
-  const LABELS = { auto: "Auto", light: "Light", dark: "Dark" };
+  const system = window.matchMedia("(prefers-color-scheme: dark)");
 
   const read = () => {
     try {
-      return localStorage.getItem(KEY) || "auto";
+      const saved = localStorage.getItem(KEY);
+      return saved === "light" || saved === "dark" ? saved : "auto";
     } catch {
       return "auto";
     }
   };
   const write = (value) => {
     try {
-      localStorage.setItem(KEY, value);
+      if (value === "auto") localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, value);
     } catch {
       /* storage unavailable (private mode): the choice lasts for this page only */
     }
@@ -23,24 +24,28 @@
     if (value === "auto") delete root.dataset.theme;
     else root.dataset.theme = value;
   };
+  // The theme on screen right now: the saved choice, or else the device setting.
+  const shown = () => root.dataset.theme || (system.matches ? "dark" : "light");
 
   root.classList.add("js");
   applyTheme(read());
 
   document.addEventListener("DOMContentLoaded", () => {
     const button = document.querySelector("[data-theme-toggle]");
-    const label = document.querySelector("[data-theme-label]");
-    if (!button || !label) return;
-    const render = (value) => {
-      label.textContent = LABELS[value];
-      button.setAttribute("aria-label", `Color theme: ${LABELS[value]}. Change theme`);
+    if (!button) return;
+    const render = () => {
+      button.setAttribute("aria-label", shown() === "dark" ? "Switch to light theme" : "Switch to dark theme");
     };
-    render(read());
+    render();
+    // One click always flips what's on screen. Choosing the device's own theme goes back to
+    // following the device, so the page keeps up if that setting changes later.
     button.addEventListener("click", () => {
-      const next = ORDER[(ORDER.indexOf(read()) + 1) % ORDER.length];
-      write(next);
-      applyTheme(next);
-      render(next);
+      const next = shown() === "dark" ? "light" : "dark";
+      const value = next === (system.matches ? "dark" : "light") ? "auto" : next;
+      write(value);
+      applyTheme(value);
+      render();
     });
+    system.addEventListener("change", render);
   });
 })();

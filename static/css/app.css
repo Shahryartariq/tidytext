@@ -45,6 +45,8 @@
   --accent-ink: #ffffff;
   --accent-soft: #e2f1ee;
   --mark-lines: #ffffff;
+  --icon-moon: block;
+  --icon-sun: none;
   --danger: #b42318;
   --danger-soft: #fdecea;
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -71,6 +73,8 @@
     --accent-ink: #04201c;
     --accent-soft: #12302b;
     --mark-lines: #151b19;
+    --icon-moon: none;
+    --icon-sun: block;
     --danger: #ff8a80;
     --danger-soft: #3a1d1b;
     --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2304201c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -91,6 +95,8 @@
   --accent-ink: #04201c;
   --accent-soft: #12302b;
   --mark-lines: #151b19;
+  --icon-moon: none;
+  --icon-sun: block;
   --danger: #ff8a80;
   --danger-soft: #3a1d1b;
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2304201c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -307,6 +313,16 @@ html:not(.js) .js-only {
 .theme-toggle svg {
   width: 17px;
   height: 17px;
+}
+
+.theme-toggle .icon-moon {
+  display: var(--icon-moon);
+}
+
+.theme-toggle .icon-sun {
+  display: var(--icon-sun);
+  width: 19px;
+  height: 19px;
 }
 
 html:not(.js) .theme-toggle {
@@ -749,6 +765,11 @@ html:not(.js) .theme-toggle {
 
 .already-clean {
   color: var(--accent);
+  font-weight: 600;
+}
+
+.too-large {
+  color: var(--danger);
   font-weight: 600;
 }
 

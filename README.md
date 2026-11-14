@@ -21,7 +21,7 @@ Fix broken line breaks from PDFs, extra spaces, duplicate lines, invisible chara
 </div>
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="TidyText on desktop: cleaning options above, your text on the left and the clean result on the right" width="72%">
+  <img src="docs/screenshot.png" alt="TidyText on desktop: grouped options on the left, your text in the middle and the clean result on the right" width="72%">
   &nbsp;
   <img src="docs/screenshot-mobile.png" alt="TidyText on a phone in dark mode" width="20%">
 </p>
@@ -111,9 +111,9 @@ A highlighted counter shows exactly what changed, for example `1,240 characters 
 | App server | [Gunicorn](https://gunicorn.org/) |
 | Hosting | [Vercel](https://vercel.com/) (serverless Python + CDN), or any Docker host |
 | Container | Docker: multi-stage build, non-root user, read-only filesystem |
-| Testing | Django test runner, Node.js test runner, headless Chrome checks |
+| Testing | Django test runner, Node.js test runner, Playwright browser tests, worst-case timing tests |
 | Code quality | [Ruff](https://docs.astral.sh/ruff/) (lint, format, security rules), `manage.py check --deploy` |
-| CI/CD | GitHub Actions: tests on every push, Docker image to GHCR on every release |
+| CI/CD | GitHub Actions: tests, dependency audit and browser tests on every push; Docker image to GHCR on every release |
 
 Runtime dependencies: Django, WhiteNoise and Gunicorn. Nothing else.
 
@@ -130,8 +130,8 @@ flowchart LR
     C -. tested against .-> S
 ```
 
-- The transformations exist twice, once in Python and once in JavaScript, and both are tested against the **same 51 cases**. So the instant browser result and the no-JavaScript fallback always match.
-- Options run in a fixed order: find and replace, HTML removal, invisible characters, quotes, hyphenation, grammar fixes, paraphrase, humanize, punctuation, line breaks, empty lines, spaces, duplicates, sorting, then letter case.
+- The transformations exist twice, once in Python and once in JavaScript, and both are tested against the **same 59 cases**. So the instant browser result and the no-JavaScript fallback always match.
+- Options run in a fixed order: find and replace, HTML removal, invisible characters, quotes, hyphenation, grammar fixes, paraphrase, humanize, punctuation, line breaks, empty lines, spaces, sorting, letter case, then duplicates (last, so "Apple" and "apple" count as the same line after lowercasing).
 - Pages are identical for every visitor (no cookies), so Vercel's CDN caches them. Most visits never reach Django.
 
 ## Getting started
@@ -155,27 +155,35 @@ Run `make` on its own to see this list in your terminal.
 | `make env` | Create `.env` with a fresh secret key |
 | `make dev` | Development server with auto-reload |
 | `make serve` | Run like production locally, with Gunicorn |
-| `make test` | Python and JavaScript tests |
+| `make test` | Python and JavaScript tests, including worst-case timing |
+| `make e2e` | Browser tests of the user flows against a running server |
+| `make audit` | Check runtime dependencies for known vulnerabilities |
 | `make lint` / `make format` | Check or fix code style with Ruff |
 | `make check` | Django's production deployment checks |
-| `make ci` | Everything CI runs |
+| `make ci` | Lint, tests, deploy checks and audit (CI also runs `make e2e`) |
 | `make docker-build` | Build the production image |
 | `make docker-run` | Build and run the image on port 8000 |
 | `make up` / `make down` / `make logs` | Docker Compose |
 | `make secret` | Print a new `DJANGO_SECRET_KEY` |
 | `make cases` | Regenerate the shared test cases |
 | `make assets` | Redraw the icons and social sharing card |
-| `make release VERSION=x.y.z` | Run CI checks, then tag and push a release |
+| `make release VERSION=x.y.z` | Check the version in `pyproject.toml`, run CI checks, then tag and push |
 
 ## Testing and quality
 
 ```bash
-make test    # 36 Python tests + 33 JavaScript cases
+make test    # 62 Python tests + 87 JavaScript tests (59 shared cases, worst-case timing)
 make lint    # Ruff: style, bugs and security rules
 make check   # Django production checks (HTTPS, HSTS, secret key, ...)
+make audit   # pip-audit on the runtime dependencies
+
+# Browser tests of the main flows (copy, paste, files, options, theme, no-JavaScript fallback)
+npm ci && npx playwright install chromium   # once
+make serve                                  # in another terminal
+make e2e
 ```
 
-GitHub Actions runs all three on every push and pull request, then builds the Docker image and smoke-tests the running container.
+GitHub Actions runs all of these on every push and pull request, runs the browser tests against the site served like production, then builds the Docker image and smoke-tests the running container. Actions are pinned to commit SHAs, and Dependabot proposes weekly updates. A release only publishes its Docker image if the tag matches `pyproject.toml` and the full CI passes on the tagged commit.
 
 ## Deploy to Vercel
 
@@ -244,7 +252,7 @@ Only page views are sent. The text people clean never goes to Google. If you hav
 - **No stored data:** no database, no uploads, no accounts, no sessions. Gunicorn logs paths only, never request bodies.
 - **Strict Content-Security-Policy** with no inline scripts or styles (the two pages with Paraphrase with AI also let its worker load the model runtime from jsDelivr), plus HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, COOP, CORP and a restrictive Permissions-Policy.
 - **Safe output:** user text is always escaped, never rendered as HTML.
-- **Limits:** 200,000 characters per request, 1 MB request bodies, 5 MB files (read locally).
+- **Limits:** 200,000 characters per request, 4 MB request bodies, 5 MB files (read locally), and a 1,000,000 character cap on find-and-replace results. Every pattern runs in linear time, and tests time each option on 200,000 characters of worst-case input, so one request can't tie up the server.
 - **Secrets from the environment:** the app refuses to start in production without a secret key.
 - **Small attack surface:** three runtime dependencies, no admin panel, no third-party scripts unless analytics is turned on or a visitor clicks Paraphrase with AI (which loads Transformers.js from jsDelivr into a worker and the model from Hugging Face; the text stays on the device).
 
@@ -253,10 +261,10 @@ Details and how to report a problem: [SECURITY.md](SECURITY.md).
 ## SEO
 
 - One landing page per tool, each with its own title, description, heading and FAQs
-- Canonical URLs, `sitemap.xml` and `robots.txt`
+- Canonical URLs, `sitemap.xml` and `robots.txt`; the sitemap always lists the public address, and Vercel's per-deploy addresses send `X-Robots-Tag: noindex`
 - Open Graph and Twitter cards with a 1200×630 image
 - JSON-LD structured data: `WebApplication`, `FAQPage` and `BreadcrumbList`
-- Fast, mobile-friendly pages with semantic HTML
+- Fast, mobile-friendly pages with semantic HTML: Lighthouse 100 for performance, accessibility, best practices and SEO
 
 ## Project structure
 
@@ -267,7 +275,7 @@ Details and how to report a problem: [SECURITY.md](SECURITY.md).
 │   ├── transforms.py       # Text transformations (pure Python)
 │   ├── catalog.py          # The 19 tools: presets, titles, page copy, FAQs
 │   ├── views.py            # Pages, no-JS form fallback, robots.txt, health check
-│   ├── middleware.py       # Security and cache headers
+│   ├── middleware.py       # Security, cache and noindex headers
 │   ├── sitemaps.py
 │   └── tests/              # Python tests + cases.json shared with JavaScript
 ├── templates/              # Base layout, tool page, about, privacy, error pages
@@ -279,6 +287,7 @@ Details and how to report a problem: [SECURITY.md](SECURITY.md).
 │   ├── js/analytics.js     # Optional Google Analytics loader
 │   └── img/                # Icons and social sharing card
 ├── tests/js/               # JavaScript tests (node --test)
+├── tests/e2e/              # Browser tests of the user flows (Playwright)
 ├── scripts/                # Test-case and image generators
 ├── Dockerfile, docker-compose.yml, gunicorn.conf.py
 ├── vercel.json

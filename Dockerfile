@@ -12,7 +12,7 @@ FROM python:3.13-slim
 ARG GIT_SHA=local
 LABEL org.opencontainers.image.title="TidyText" \
       org.opencontainers.image.description="Clean up messy text: line breaks, spaces and letter case." \
-      org.opencontainers.image.source="https://github.com/Shahryartariq/django-text-formatter" \
+      org.opencontainers.image.source="https://github.com/Shahryartariq/tidytext" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.revision="${GIT_SHA}"
 

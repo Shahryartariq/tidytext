@@ -1,7 +1,7 @@
 // Instant, in-browser cleaning. The server only formats text when JavaScript is off.
 // Load transforms.js with this file's ?v=<build id>, so a cached copy from an older deploy
 // can never run alongside the new page (it would silently ignore new options).
-const { apply, details, humanize, stats } = await import(`./transforms.js${new URL(import.meta.url).search}`);
+const { MAX_OUTPUT_CHARS, OutputTooLarge, apply, details, humanize, stats } = await import(`./transforms.js${new URL(import.meta.url).search}`);
 
 const MAX_CHARS = 200_000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -12,7 +12,8 @@ if (form) {
   const output = form.querySelector("[data-output]");
   const before = form.querySelector('[data-stats="before"]');
   const after = form.querySelector('[data-stats="after"]');
-  const detailBox = form.querySelector("[data-details]");
+  // The word count panel sits below the form, not inside it.
+  const detailBox = document.querySelector("[data-details]");
   const fileInput = form.querySelector("[data-file]");
   const inputPane = input.closest(".pane");
   const toast = form.querySelector("[data-toast]");
@@ -117,20 +118,34 @@ if (form) {
     return options.flags.includes("humanize") ? humanize(ai.text) : ai.text;
   };
 
+  const note = (className, text) => {
+    const span = Object.assign(document.createElement("span"), { className });
+    span.textContent = text;
+    after.replaceChildren(span);
+  };
+  const TOO_LARGE = `That replacement would make the text longer than ${fmt.format(MAX_OUTPUT_CHARS)} characters. Use a shorter replacement.`;
+
   const update = () => {
     errorBox?.remove();
     const options = readOptions();
-    const cleaned = clean(options);
-    output.value = cleaned;
     const a = stats(input.value);
-    const b = stats(cleaned);
     renderStats(before, a, a);
+    let cleaned;
+    try {
+      cleaned = clean(options);
+    } catch (error) {
+      if (!(error instanceof OutputTooLarge)) throw error;
+      output.value = "";
+      note("too-large", TOO_LARGE);
+      renderDetails("", stats(""));
+      if (resetButton) resetButton.hidden = !optionFields.some(isChanged);
+      return;
+    }
+    output.value = cleaned;
+    const b = stats(cleaned);
     if (input.value === "") after.replaceChildren();
-    else if (cleaned === input.value && !isNoop(options)) {
-      const note = Object.assign(document.createElement("span"), { className: "already-clean" });
-      note.textContent = "Already clean, nothing to change";
-      after.replaceChildren(note);
-    } else renderStats(after, a, b);
+    else if (cleaned === input.value && !isNoop(options)) note("already-clean", "Already clean, nothing to change");
+    else renderStats(after, a, b);
     renderDetails(cleaned, b);
     if (resetButton) resetButton.hidden = !optionFields.some(isChanged);
   };
@@ -173,8 +188,9 @@ if (form) {
     try {
       await navigator.clipboard.writeText(output.value);
     } catch {
+      // Older browsers and pages without clipboard permission.
       output.select();
-      document.execCommand("copy");
+      if (!document.execCommand("copy")) return say("Couldn't copy. Press Ctrl+C (or ⌘C) to copy the selected text.");
     }
     say("Copied to clipboard", { quiet: true });
     copyButton.textContent = "Copied";
@@ -227,7 +243,10 @@ if (form) {
     if (!looksLikeText(file)) return say("That file isn't plain text. Try a .txt, .csv or .md file.");
     if (file.size > MAX_FILE_BYTES) return say("That file is over 5 MB. Try a smaller one.");
     try {
-      setInput(await file.text(), `Opened ${file.name}`);
+      const text = await file.text();
+      // A NUL character means a binary file (an image, a Word document) that slipped through.
+      if (text.includes("\u0000")) return say("That file isn't plain text. Try a .txt, .csv or .md file.");
+      setInput(text, `Opened ${file.name}`);
     } catch {
       say("That file couldn't be read.");
     }
@@ -262,6 +281,13 @@ if (form) {
   const runAi = () => {
     if (!input.value.trim()) return say("Paste some text first.");
     const options = readOptions();
+    let prepared;
+    try {
+      prepared = apply(input.value, beforeAi(options));
+    } catch (error) {
+      if (!(error instanceof OutputTooLarge)) throw error;
+      return say(TOO_LARGE);
+    }
     const key = aiKey(options);
     const run = ++aiRun;
     worker ??= new Worker(aiPanel.dataset.worker, { type: "module" });
@@ -287,16 +313,19 @@ if (form) {
       }
     };
     worker.onerror = () => {
+      worker?.terminate();
       worker = null;
       showAi("The AI couldn't start. Check your connection and try again.", { busy: false });
     };
     showAi("Starting the AI…");
-    worker.postMessage({ id: run, text: apply(input.value, beforeAi(options)) });
+    worker.postMessage({ id: run, text: prepared });
   };
 
   input.addEventListener("input", () => {
     leaveExample();
     schedule();
+    // The box stops accepting text at the limit, so say why instead of failing silently.
+    if (input.value.length >= MAX_CHARS) say(`That's the ${fmt.format(MAX_CHARS)} character limit. Anything after it was left out.`);
   });
   // Pasting over the untouched example replaces it, instead of mixing the two.
   input.addEventListener("paste", (event) => {

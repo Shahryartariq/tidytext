@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from django.conf import settings
+from django.core.exceptions import RequestDataTooBig, TooManyFieldsSent
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -143,20 +144,34 @@ def tool_page(request: HttpRequest, slug: str = "") -> HttpResponse:
     error = ""
     status = 200
 
+    too_long = f"That text is too long. Paste up to {MAX_INPUT_CHARS:,} characters at a time."
     if request.method == "POST":
         # Fallback for visitors without JavaScript. The text is formatted and returned,
         # never stored or logged.
-        options = _options_from_post(request)
-        text = request.POST.get("text", "")
-        if len(text) > MAX_INPUT_CHARS:
-            error = f"That text is too long. Paste up to {MAX_INPUT_CHARS:,} characters at a time."
-            text = text[:MAX_INPUT_CHARS]
-            status = 413
-        elif not text.strip():
-            error = "Paste some text first, then choose Clean text."
-            status = 400
+        try:
+            options = _options_from_post(request)
+            text = request.POST.get("text", "")
+        except (RequestDataTooBig, TooManyFieldsSent):
+            # The body is over the upload limit: answer with the form and a clear message
+            # instead of Django's bare "Bad Request" page.
+            options, text, error, status = tool.options, "", too_long, 413
         else:
-            output = transforms.apply(text, options)
+            if len(text) > MAX_INPUT_CHARS:
+                error = too_long
+                text = text[:MAX_INPUT_CHARS]
+                status = 413
+            elif not text.strip():
+                error = "Paste some text first, then choose Clean text."
+                status = 400
+            else:
+                try:
+                    output = transforms.apply(text, options)
+                except transforms.OutputTooLarge:
+                    error = (
+                        "That replacement would make the text longer than "
+                        f"{transforms.MAX_OUTPUT_CHARS:,} characters. Use a shorter replacement."
+                    )
+                    status = 413
     else:
         output = transforms.apply(text, options)
 

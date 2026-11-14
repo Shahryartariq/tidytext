@@ -30,6 +30,9 @@ FLAGS = (
     "paraphrase",
 )
 MAX_FIND_CHARS = 1000
+# Find and replace can grow the text (find "a", replace with 1,000 characters). Past this size
+# it stops instead of building a result that would exhaust the server's or the browser's memory.
+MAX_OUTPUT_CHARS = 1_000_000
 
 # Zero-width space/joiners, word joiner, byte-order mark, soft hyphen.
 INVISIBLE_CHARS = "".join(map(chr, (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF, 0x00AD)))
@@ -44,7 +47,10 @@ _WORD = re.compile(f"[^{WHITESPACE}]+")
 _NON_SPACE = re.compile(f"[^{WHITESPACE}]")
 _LETTER = r"[^\W\d_]"
 _TITLE_START = re.compile(rf"""(^|[\s\-/(\[{{"“‘])({_LETTER})""")
-_SENTENCE_START = re.compile(rf"""(^[\s"'“‘(]*|[.!?]["'”’)]*\s+["'“‘(]*|\n[\s"'“‘(]*)({_LETTER})""")
+# A sentence starts after a line break or after . ! ? and a space. The letter after a line break
+# is optional so that a long run of blank lines is consumed in one match: without that, every
+# line break in the run would rescan the rest of it (quadratic time on hostile input).
+_SENTENCE_START = re.compile(rf"""(\n[\s"'“‘(]*)({_LETTER})?|([.!?]["'”’)]*\s+["'“‘(]*)({_LETTER})""")
 _PRONOUN_I = re.compile(rf"(?<!{_LETTER})i(?!{_LETTER}|\.e\.)")
 _SENTENCE_END = re.compile(r"""[.!?]+(?=[\s"'”’)]|$)""")
 _HYPHEN_BREAK = re.compile(rf"({_LETTER})-[ \t]*\n[ \t]*({_LETTER})")
@@ -66,10 +72,16 @@ _QUOTES = str.maketrans(
         "…": "...",
     }
 )
-_HTML_COMMENT = re.compile(r"<!--[\s\S]*?-->")
-_HTML_SCRIPT = re.compile(r"<(script|style)\b[^>]*>[\s\S]*?</\1\s*>", re.IGNORECASE)
+# Tags stop at the next "<" as well as ">", so text full of unclosed "<a" can't make each one
+# rescan the rest of the text. Comments and script/style blocks are removed by a linear scan
+# (see strip_html) for the same reason.
+_HTML_BLOCK_OPEN = re.compile(r"<(script|style)\b[^<>]*>", re.IGNORECASE)
+_HTML_BLOCK_CLOSE = {
+    "script": re.compile(r"</script\s*>", re.IGNORECASE),
+    "style": re.compile(r"</style\s*>", re.IGNORECASE),
+}
 _HTML_BREAK = re.compile(r"<br\s*/?>|</(?:p|div|li|h[1-6]|tr|blockquote|pre)\s*>", re.IGNORECASE)
-_HTML_TAG = re.compile(r"</?[a-zA-Z][^>]*>")
+_HTML_TAG = re.compile(r"</?[a-zA-Z][^<>]*>")
 _HTML_ENTITY = re.compile(r"&(#\d{1,7}|#x[0-9a-f]{1,6}|nbsp|amp|lt|gt|quot|apos);", re.IGNORECASE)
 _NAMED_ENTITIES = {"nbsp": "\u00a0", "amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
 
@@ -556,10 +568,20 @@ def unescape(value: str) -> str:
     return _ESCAPES.sub(lambda m: {"n": "\n", "t": "\t", "\\": "\\"}[m.group(1)], value)
 
 
+class OutputTooLarge(ValueError):
+    """Find and replace would grow the text past MAX_OUTPUT_CHARS."""
+
+
 def find_replace(text: str, find: str, replace: str) -> str:
     """Plain-text, case-sensitive find and replace (no regular expressions)."""
     find = unescape(find)
-    return text.replace(find, unescape(replace)) if find else text
+    if not find:
+        return text
+    replace = unescape(replace)
+    growth = len(replace) - len(find)
+    if growth > 0 and len(text) + text.count(find) * growth > MAX_OUTPUT_CHARS:
+        raise OutputTooLarge
+    return text.replace(find, replace)
 
 
 def _decode_entity(match: re.Match) -> str:
@@ -570,10 +592,47 @@ def _decode_entity(match: re.Match) -> str:
     return chr(code) if 0 < code <= 0x10FFFF and not 0xD800 <= code <= 0xDFFF else match.group(0)
 
 
+def _strip_comments(text: str) -> str:
+    """Remove <!-- ... --> comments. An unclosed comment is left as it is."""
+    kept = []
+    copied = 0
+    while True:
+        start = text.find("<!--", copied)
+        end = text.find("-->", start + 4) if start != -1 else -1
+        if end == -1:
+            break
+        kept.append(text[copied:start])
+        copied = end + 3
+    kept.append(text[copied:])
+    return "".join(kept)
+
+
+def _strip_blocks(text: str) -> str:
+    """Remove <script> and <style> blocks with their contents. Unclosed blocks are left alone."""
+    kept = []
+    copied = scan = 0
+    unclosed: set[str] = set()
+    while len(unclosed) < len(_HTML_BLOCK_CLOSE):
+        opening = _HTML_BLOCK_OPEN.search(text, scan)
+        if opening is None:
+            break
+        name = opening.group(1).lower()
+        closing = None if name in unclosed else _HTML_BLOCK_CLOSE[name].search(text, opening.end())
+        if closing is None:
+            # No closing tag anywhere after this point, so later blocks of this kind can't close either.
+            unclosed.add(name)
+            scan = opening.end()
+            continue
+        kept.append(text[copied : opening.start()])
+        copied = scan = closing.end()
+    kept.append(text[copied:])
+    return "".join(kept)
+
+
 def strip_html(text: str) -> str:
     """Remove HTML tags and comments, keep the text, and decode common entities."""
-    text = _HTML_COMMENT.sub("", text)
-    text = _HTML_SCRIPT.sub("", text)
+    text = _strip_comments(text)
+    text = _strip_blocks(text)
     text = _HTML_BREAK.sub("\n", text)
     text = _HTML_TAG.sub("", text)
     return _HTML_ENTITY.sub(_decode_entity, text)
@@ -712,8 +771,15 @@ def title_case(text: str) -> str:
     return _TITLE_START.sub(lambda m: m.group(1) + m.group(2).upper(), text.lower())
 
 
+def _capitalize_start(match: re.Match) -> str:
+    if match.group(1) is not None:
+        return match.group(1) + (match.group(2) or "").upper()
+    return match.group(3) + match.group(4).upper()
+
+
 def sentence_case(text: str) -> str:
-    text = _SENTENCE_START.sub(lambda m: m.group(1) + m.group(2).upper(), text.lower())
+    # The added line break makes the start of the text follow the same rule as the start of a line.
+    text = _SENTENCE_START.sub(_capitalize_start, "\n" + text.lower())[1:]
     return _PRONOUN_I.sub("I", text)
 
 
@@ -754,12 +820,14 @@ def apply(text: str, options: Options) -> str:
         text = remove_empty_lines(text)
     if "remove_extra_spaces" in flags:
         text = remove_extra_spaces(text)
-    if "remove_duplicate_lines" in flags:
-        text = remove_duplicate_lines(text)
     if options.sort != "keep":
         text = sort_lines(text, options.sort)
     if options.case in _CASES:
         text = _CASES[options.case](text)
+    # Last, so lines that only became equal through the steps above ("Apple" and "apple" after
+    # lowercase) count as duplicates too.
+    if "remove_duplicate_lines" in flags:
+        text = remove_duplicate_lines(text)
     return text
 
 

@@ -9,17 +9,18 @@
   <meta name="robots" content="{% block robots %}index, follow{% endblock %}">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0D1117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#101513" media="(prefers-color-scheme: dark)">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ app_name }}">
   <meta property="og:title" content="{% block og_title %}{{ app_name }}{% endblock %}">
-  <meta property="og:description" content="{% block og_description %}Clean up messy text in seconds. Free, instant and private.{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Clean up text copied from PDFs, emails and web pages. Free, and your text stays in your browser.{% endblock %}">
   <meta property="og:url" content="{{ canonical_url }}">
   <meta property="og:image" content="{{ site_url }}{% asset 'img/og-image.png' %}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="{{ app_name }}: clean up messy text in seconds">
+  <meta property="og:image:alt" content="{{ app_name }}: clean up copied text">
+  <meta property="og:locale" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
 
   <link rel="icon" href="{% asset 'img/favicon.svg' %}" type="image/svg+xml">
@@ -33,6 +34,7 @@
   <script src="{% asset 'js/analytics.js' %}" data-ga-id="{{ ga_id }}"></script>
   {% endif %}
   <link rel="preload" href="{% static 'fonts/atkinson-hyperlegible-next-latin-400-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'fonts/atkinson-hyperlegible-next-latin-700-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% asset 'css/app.css' %}">
   {% block head %}{% endblock %}
 </head>
@@ -54,9 +56,9 @@
         <a class="nav-source" href="https://github.com/Shahryartariq/tidytext" rel="noopener" aria-label="Source code on GitHub">
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
         </a>
-        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Change color theme">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 9 9A7 7 0 0 1 12 3Z" fill="currentColor"/></svg>
-          <span class="visually-hidden" data-theme-label>Auto</span>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch color theme">
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 9 9A7 7 0 0 1 12 3Z" fill="currentColor"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </nav>
     </div>

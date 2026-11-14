@@ -32,7 +32,7 @@
   },
   {
     "name": "remove extra spaces keeps line breaks",
-    "input": "  too    many\tspaces  \nsecond\u00a0\u00a0 line ",
+    "input": "  too    many\tspaces  \nsecond   line ",
     "options": {
       "flags": [
         "remove_extra_spaces"
@@ -59,7 +59,7 @@
   },
   {
     "name": "remove punctuation handles unicode quotes and dashes",
-    "input": "\u201cSmart\u201d quotes \u2014 and \u00bfQu\u00e9 tal? \u00a1Hola!",
+    "input": "“Smart” quotes — and ¿Qué tal? ¡Hola!",
     "options": {
       "flags": [
         "remove_punctuation"
@@ -68,7 +68,7 @@
   },
   {
     "name": "remove invisible characters",
-    "input": "zero\u200bwidth\u200c join\u200der\ufeff soft\u00adhyphen\u2060end",
+    "input": "zero​width‌ join‍er﻿ soft­hyphen⁠end",
     "options": {
       "flags": [
         "remove_invisible"
@@ -77,14 +77,14 @@
   },
   {
     "name": "uppercase",
-    "input": "Make me loud, stra\u00dfe!",
+    "input": "Make me loud, straße!",
     "options": {
       "case": "upper"
     }
   },
   {
     "name": "lowercase",
-    "input": "QUIET Please, \u00c9COLE",
+    "input": "QUIET Please, ÉCOLE",
     "options": {
       "case": "lower"
     }
@@ -119,7 +119,7 @@
   },
   {
     "name": "full PDF clean-up preset",
-    "input": "\ufeffThe  report   shows\nthat sales\u200b grew\n\n\nby 12 percent.\nThis is\n   great news.",
+    "input": "﻿The  report   shows\nthat sales​ grew\n\n\nby 12 percent.\nThis is\n   great news.",
     "options": {
       "line_breaks": "paragraphs",
       "flags": [
@@ -176,7 +176,7 @@
   },
   {
     "name": "straight quotes, dashes and ellipsis",
-    "input": "\u201cSmart\u201d \u2018quotes\u2019 \u2014 en\u2013dash\u2026 done\u2033 5\u2032",
+    "input": "“Smart” ‘quotes’ — en–dash… done″ 5′",
     "options": {
       "flags": [
         "straighten_quotes"
@@ -194,7 +194,7 @@
   },
   {
     "name": "sort lines A to Z ignoring case, blanks last",
-    "input": "banana\n\nApple\ncherry\napple\n\u00c4pfel",
+    "input": "banana\n\nApple\ncherry\napple\nÄpfel",
     "options": {
       "sort": "az"
     }
@@ -241,7 +241,7 @@
   },
   {
     "name": "PDF clean-up with hyphenation and quotes",
-    "input": "\u201cThe commit-\ntee met  on\nTuesday.\u201d\n\nNo   changes\nwere made\u2026",
+    "input": "“The commit-\ntee met  on\nTuesday.”\n\nNo   changes\nwere made…",
     "options": {
       "line_breaks": "paragraphs",
       "flags": [
@@ -270,12 +270,12 @@
   },
   {
     "name": "unicode spaces count as word separators",
-    "input": "one\u00a0two\u2003three\u3000four",
+    "input": "one two three　four",
     "options": {}
   },
   {
     "name": "humanize rewrites stiff phrases",
-    "input": "Furthermore, it is important to note that you are not alone. Many individuals utilize AI tools in order to write faster \u2014 and they are often better than they think. In conclusion, do not overthink it.",
+    "input": "Furthermore, it is important to note that you are not alone. Many individuals utilize AI tools in order to write faster — and they are often better than they think. In conclusion, do not overthink it.",
     "options": {
       "flags": [
         "humanize"
@@ -293,7 +293,7 @@
   },
   {
     "name": "humanize keeps capitals and curly apostrophes",
-    "input": "DO NOT utilize it. It\u2019s here, so we are right. Ensure the Robust plan works.",
+    "input": "DO NOT utilize it. It’s here, so we are right. Ensure the Robust plan works.",
     "options": {
       "flags": [
         "humanize"
@@ -311,7 +311,7 @@
   },
   {
     "name": "humanize turns em dashes into commas",
-    "input": "word\u2014word and word \u2014 word\n\u2014 a line that starts with a dash",
+    "input": "word—word and word — word\n— a line that starts with a dash",
     "options": {
       "flags": [
         "humanize"
@@ -338,7 +338,7 @@
   },
   {
     "name": "humanize slips keep capitals and curly apostrophes",
-    "input": "YOU\u2019RE GOOD. It\u2019s fine, they\u2019re here. FOR 3 YEARS.",
+    "input": "YOU’RE GOOD. It’s fine, they’re here. FOR 3 YEARS.",
     "options": {
       "flags": [
         "humanize"
@@ -365,7 +365,7 @@
   },
   {
     "name": "fix grammar keeps curly apostrophes and i.e.",
-    "input": "i.e. youre right and your\u2019s is fine, i dont know",
+    "input": "i.e. youre right and your’s is fine, i dont know",
     "options": {
       "flags": [
         "fix_grammar"
@@ -435,6 +435,76 @@
     "options": {
       "flags": [
         "paraphrase"
+      ]
+    }
+  },
+  {
+    "name": "duplicates removed after lowercase",
+    "input": "Apple\napple\nBanana\nBANANA",
+    "options": {
+      "case": "lower",
+      "flags": [
+        "remove_duplicate_lines"
+      ]
+    }
+  },
+  {
+    "name": "duplicates removed after extra spaces",
+    "input": "a  b\na b\n",
+    "options": {
+      "flags": [
+        "remove_extra_spaces",
+        "remove_duplicate_lines"
+      ]
+    }
+  },
+  {
+    "name": "sentence case after blank lines and quotes",
+    "input": "\n\n\n  \"hello there. what?\n\n(new) para. i agree.",
+    "options": {
+      "case": "sentence"
+    }
+  },
+  {
+    "name": "sentence case keeps leading spaces",
+    "input": "   one. two!   three",
+    "options": {
+      "case": "sentence"
+    }
+  },
+  {
+    "name": "unclosed comment is kept",
+    "input": "a <!-- b <!-- c --> d <!-- e",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    }
+  },
+  {
+    "name": "unclosed script is kept, closed one removed",
+    "input": "<script>x</script>keep <style>y</style>this <script>never closed",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    }
+  },
+  {
+    "name": "mixed-case script and style tags",
+    "input": "<SCRIPT type=\"a\">x</Script >A<Style>b</STYLE>B",
+    "options": {
+      "flags": [
+        "strip_html"
+      ]
+    }
+  },
+  {
+    "name": "half tags next to real ones",
+    "input": "<a<b>text</b> 1 < 2 <i",
+    "options": {
+      "flags": [
+        "strip_html"
       ]
     }
   }
