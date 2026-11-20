@@ -9,9 +9,9 @@ requires-python = ">=3.12"
 # Runtime dependencies. Vercel installs these from here; keep requirements.txt
 # (used by Docker) identical. tools/tests/test_packaging.py checks they match.
 dependencies = [
-    "Django==6.1.2",
+    "Django==6.1.3",
     "whitenoise==6.12.0",
-    "gunicorn==26.2.0",
+    "gunicorn==27.0.1",
 ]
 
 [tool.ruff]
