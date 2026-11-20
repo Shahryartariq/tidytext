@@ -1,5 +1,5 @@
 # ---- Build: install dependencies into a virtualenv ----
-FROM python:3.13-slim AS build
+FROM python:3.15-slim AS build
 
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN python -m venv /venv
@@ -7,7 +7,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN /venv/bin/pip install -r /tmp/requirements.txt
 
 # ---- Runtime: small image, non-root user ----
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 ARG GIT_SHA=local
 LABEL org.opencontainers.image.title="TidyText" \
