@@ -18,6 +18,9 @@ export const FLAGS = [
   "paraphrase",
 ];
 export const MAX_FIND_CHARS = 1000;
+// Find and replace can grow the text (find "a", replace with 1,000 characters). Past this size
+// it stops instead of building a result that would exhaust the browser's or the server's memory.
+export const MAX_OUTPUT_CHARS = 1_000_000;
 
 const WHITESPACE = " \\t\\n\\f\\v\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const INVISIBLE = new RegExp(`[${[0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad].map((c) => String.fromCharCode(c)).join("")}]`, "g");
@@ -28,7 +31,10 @@ const WORD = new RegExp(`[^${WHITESPACE}]+`, "gu");
 const NON_SPACE = new RegExp(`[^${WHITESPACE}]`, "gu");
 const PUNCTUATION = /\p{P}/gu;
 const TITLE_START = /(^|[\s\-/(\[{"“‘])(\p{L})/gu;
-const SENTENCE_START = /(^[\s"'“‘(]*|[.!?]["'”’)]*\s+["'“‘(]*|\n[\s"'“‘(]*)(\p{L})/gu;
+// A sentence starts after a line break or after . ! ? and a space. The letter after a line break
+// is optional so that a long run of blank lines is consumed in one match: without that, every
+// line break in the run would rescan the rest of it (quadratic time on hostile input).
+const SENTENCE_START = /(\n[\s"'“‘(]*)(\p{L})?|([.!?]["'”’)]*\s+["'“‘(]*)(\p{L})/gu;
 const PRONOUN_I = /(?<!\p{L})i(?!\p{L}|\.e\.)/gu;
 const SENTENCE_END = /[.!?]+(?=[\s"'”’)]|$)/;
 const ALNUM = /[\p{L}\p{N}]/u;
@@ -40,10 +46,13 @@ const QUOTES = {
   "–": "-", "—": "-", "…": "...",
 };
 const QUOTE_CHARS = new RegExp(`[${Object.keys(QUOTES).join("")}]`, "g");
-const HTML_COMMENT = /<!--[\s\S]*?-->/g;
-const HTML_SCRIPT = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+// Tags stop at the next "<" as well as ">", so text full of unclosed "<a" can't make each one
+// rescan the rest of the text. Comments and script/style blocks are removed by a linear scan
+// (see stripHtml) for the same reason.
+const HTML_BLOCK_OPEN = /<(script|style)\b[^<>]*>/gi;
+const HTML_BLOCK_CLOSE = { script: /<\/script\s*>/gi, style: /<\/style\s*>/gi };
 const HTML_BREAK = /<br\s*\/?>|<\/(?:p|div|li|h[1-6]|tr|blockquote|pre)\s*>/gi;
-const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
+const HTML_TAG = /<\/?[a-zA-Z][^<>]*>/g;
 const HTML_ENTITY = /&(#\d{1,7}|#x[0-9a-f]{1,6}|nbsp|amp|lt|gt|quot|apos);/gi;
 const NAMED_ENTITIES = { nbsp: "\u00a0", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
@@ -496,9 +505,20 @@ const joinLines = (text) =>
 
 export const unescape = (value) => value.replace(ESCAPES, (_, c) => ({ n: "\n", t: "\t", "\\": "\\" })[c]);
 
+// Find and replace would grow the text past MAX_OUTPUT_CHARS.
+export class OutputTooLarge extends Error {}
+
 export function findReplace(text, find, replace) {
   const needle = unescape(find);
-  return needle ? text.split(needle).join(unescape(replace)) : text;
+  if (!needle) return text;
+  const replacement = unescape(replace);
+  const growth = replacement.length - needle.length;
+  if (growth > 0) {
+    let matches = 0;
+    for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + needle.length)) matches += 1;
+    if (text.length + matches * growth > MAX_OUTPUT_CHARS) throw new OutputTooLarge();
+  }
+  return text.split(needle).join(replacement);
 }
 
 function decodeEntity(match, raw) {
@@ -508,10 +528,53 @@ function decodeEntity(match, raw) {
   return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : match;
 }
 
+// Removes <!-- ... --> comments. An unclosed comment is left as it is.
+function stripComments(text) {
+  const kept = [];
+  let copied = 0;
+  for (;;) {
+    const start = text.indexOf("<!--", copied);
+    const end = start === -1 ? -1 : text.indexOf("-->", start + 4);
+    if (end === -1) break;
+    kept.push(text.slice(copied, start));
+    copied = end + 3;
+  }
+  kept.push(text.slice(copied));
+  return kept.join("");
+}
+
+const searchFrom = (re, text, from) => {
+  re.lastIndex = from;
+  return re.exec(text);
+};
+
+// Removes <script> and <style> blocks with their contents. Unclosed blocks are left alone.
+function stripBlocks(text) {
+  const kept = [];
+  let copied = 0;
+  let scan = 0;
+  const unclosed = new Set();
+  while (unclosed.size < Object.keys(HTML_BLOCK_CLOSE).length) {
+    const opening = searchFrom(HTML_BLOCK_OPEN, text, scan);
+    if (!opening) break;
+    const name = opening[1].toLowerCase();
+    const afterOpening = opening.index + opening[0].length;
+    const closing = unclosed.has(name) ? null : searchFrom(HTML_BLOCK_CLOSE[name], text, afterOpening);
+    if (!closing) {
+      // No closing tag anywhere after this point, so later blocks of this kind can't close either.
+      unclosed.add(name);
+      scan = afterOpening;
+      continue;
+    }
+    kept.push(text.slice(copied, opening.index));
+    copied = scan = closing.index + closing[0].length;
+  }
+  kept.push(text.slice(copied));
+  return kept.join("");
+}
+
 export const stripHtml = (text) =>
-  text
-    .replace(HTML_COMMENT, "")
-    .replace(HTML_SCRIPT, "")
+  stripBlocks(stripComments(text))
     .replace(HTML_BREAK, "\n")
     .replace(HTML_TAG, "")
     .replace(HTML_ENTITY, decodeEntity);
@@ -604,7 +667,11 @@ export function sortLines(text, mode) {
 
 const upperFirst = (_, before, letter) => before + letter.toUpperCase();
 export const titleCase = (text) => text.toLowerCase().replace(TITLE_START, upperFirst);
-export const sentenceCase = (text) => text.toLowerCase().replace(SENTENCE_START, upperFirst).replace(PRONOUN_I, "I");
+const capitalizeStart = (_, afterBreak, first, afterStop, next) =>
+  afterBreak !== undefined ? afterBreak + (first ?? "").toUpperCase() : afterStop + next.toUpperCase();
+// The added line break makes the start of the text follow the same rule as the start of a line.
+export const sentenceCase = (text) =>
+  `\n${text.toLowerCase()}`.replace(SENTENCE_START, capitalizeStart).slice(1).replace(PRONOUN_I, "I");
 
 const CASES = {
   upper: (text) => text.toUpperCase(),
@@ -629,9 +696,11 @@ export function apply(input, options) {
   else if (lineBreaks === "paragraphs") text = joinParagraphLines(text);
   if (flags.has("remove_empty_lines")) text = removeEmptyLines(text);
   if (flags.has("remove_extra_spaces")) text = removeExtraSpaces(text);
-  if (flags.has("remove_duplicate_lines")) text = removeDuplicateLines(text);
   if (sort !== "keep") text = sortLines(text, sort);
   if (CASES[textCase]) text = CASES[textCase](text);
+  // Last, so lines that only became equal through the steps above ("Apple" and "apple" after
+  // lowercase) count as duplicates too.
+  if (flags.has("remove_duplicate_lines")) text = removeDuplicateLines(text);
   return text;
 }
 

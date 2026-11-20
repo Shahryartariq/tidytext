@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from django.conf import settings
+from django.core.exceptions import RequestDataTooBig, TooManyFieldsSent
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -19,9 +20,9 @@ MAX_INPUT_CHARS = 200_000
 GOOGLE_VERIFICATION_FILE = "google4adfdcaade9a40a0.html"
 
 LINE_BREAK_CHOICES = (
-    ("keep", "Keep", "Leave line breaks as they are"),
-    ("paragraphs", "Join lines", "Join broken lines, keep paragraphs (best for PDFs)"),
-    ("remove", "Single line", "Put everything on one line"),
+    ("keep", "Keep line breaks", "Leave line breaks where they are"),
+    ("paragraphs", "Join lines, keep paragraphs", "Join broken lines but keep paragraphs (best for PDFs)"),
+    ("remove", "Put everything on one line", "Every line break becomes a space"),
 )
 CASE_CHOICES = (
     ("keep", "Keep as is"),
@@ -35,19 +36,39 @@ SORT_CHOICES = (
     ("az", "A to Z"),
     ("za", "Z to A"),
 )
-FLAG_CHOICES = (
-    ("remove_extra_spaces", "Extra spaces", "Remove double spaces, tabs and spaces at line ends"),
-    ("remove_empty_lines", "Empty lines", "Remove blank and whitespace-only lines"),
-    ("remove_duplicate_lines", "Duplicate lines", "Keep only the first copy of each line"),
-    ("fix_hyphenation", "Hyphenated words", "Rejoin words split across lines, like infor- mation"),
-    ("remove_invisible", "Invisible characters", "Remove zero-width spaces and soft hyphens"),
-    ("straighten_quotes", "Smart quotes", "Turn curly quotes and long dashes into plain ones"),
-    ("strip_html", "HTML tags", "Remove markup and keep the text"),
-    ("remove_punctuation", "Punctuation", "Remove commas, periods, quotes and dashes"),
-    ("fix_grammar", "Fix grammar", "Fix common slips: your good → you're good, dont → don't"),
-    ("paraphrase", "Paraphrase", "Reword wordy phrases: is able to → can, very tired → exhausted"),
-    ("humanize", "Humanize", "Plain words, contractions and everyday slips: you're good → your good"),
+# The options, grouped the way the sidebar shows them: (group, [(flag, label, hint), ...]).
+FLAG_GROUPS = (
+    (
+        "Lines",
+        (
+            ("fix_hyphenation", "Rejoin split words", "Join words split across lines, like infor- mation"),
+            ("remove_empty_lines", "Remove empty lines", "Delete blank and whitespace-only lines"),
+            ("remove_duplicate_lines", "Remove duplicate lines", "Keep only the first copy of each line"),
+        ),
+    ),
+    (
+        "Spaces and characters",
+        (
+            ("remove_extra_spaces", "Remove extra spaces", "Double spaces, tabs and spaces at line ends"),
+            ("remove_invisible", "Remove invisible characters", "Zero-width spaces and soft hyphens"),
+            ("straighten_quotes", "Straighten curly quotes", "Curly quotes and long dashes become plain"),
+            ("strip_html", "Remove HTML tags", "Remove markup and keep the text"),
+            ("remove_punctuation", "Remove punctuation", "Commas, periods, quotes and dashes"),
+        ),
+    ),
+    (
+        "Wording",
+        (
+            ("fix_grammar", "Fix grammar", "your good → you're good, dont → don't"),
+            ("paraphrase", "Paraphrase", "is able to → can, very tired → exhausted"),
+            ("humanize", "Humanize", "Plain words, contractions and a few typos"),
+        ),
+    ),
 )
+FLAG_CHOICES = tuple(choice for _, choices in FLAG_GROUPS for choice in choices)
+
+# Groups for the tool list under the editor.
+TOOL_GROUPS = ("Lines", "Spaces and characters", "Letter case", "Writing")
 
 
 def _json_ld(data: list[dict]) -> str:
@@ -123,25 +144,42 @@ def tool_page(request: HttpRequest, slug: str = "") -> HttpResponse:
     error = ""
     status = 200
 
+    too_long = f"That text is too long. Paste up to {MAX_INPUT_CHARS:,} characters at a time."
     if request.method == "POST":
         # Fallback for visitors without JavaScript. The text is formatted and returned,
         # never stored or logged.
-        options = _options_from_post(request)
-        text = request.POST.get("text", "")
-        if len(text) > MAX_INPUT_CHARS:
-            error = f"That text is too long. Paste up to {MAX_INPUT_CHARS:,} characters at a time."
-            text = text[:MAX_INPUT_CHARS]
-            status = 413
-        elif not text.strip():
-            error = "Paste some text first, then choose Clean text."
-            status = 400
+        try:
+            options = _options_from_post(request)
+            text = request.POST.get("text", "")
+        except (RequestDataTooBig, TooManyFieldsSent):
+            # The body is over the upload limit: answer with the form and a clear message
+            # instead of Django's bare "Bad Request" page.
+            options, text, error, status = tool.options, "", too_long, 413
         else:
-            output = transforms.apply(text, options)
+            if len(text) > MAX_INPUT_CHARS:
+                error = too_long
+                text = text[:MAX_INPUT_CHARS]
+                status = 413
+            elif not text.strip():
+                error = "Paste some text first, then choose Clean text."
+                status = 400
+            else:
+                try:
+                    output = transforms.apply(text, options)
+                except transforms.OutputTooLarge:
+                    error = (
+                        "That replacement would make the text longer than "
+                        f"{transforms.MAX_OUTPUT_CHARS:,} characters. Use a shorter replacement."
+                    )
+                    status = 413
     else:
         output = transforms.apply(text, options)
 
     faqs = tool.faqs + COMMON_FAQS
     page_url = request.site_url + request.path
+    tool_groups = [
+        (group, [t for t in TOOLS if t.group == group and t.slug != tool.slug]) for group in TOOL_GROUPS
+    ]
     before = transforms.stats(text)
     after = transforms.stats(output) if output is not None else None
     details = transforms.details(output if output is not None else text)
@@ -168,7 +206,8 @@ def tool_page(request: HttpRequest, slug: str = "") -> HttpResponse:
             "line_break_choices": LINE_BREAK_CHOICES,
             "case_choices": CASE_CHOICES,
             "sort_choices": SORT_CHOICES,
-            "flag_choices": FLAG_CHOICES,
+            "flag_groups": FLAG_GROUPS,
+            "tool_groups": tool_groups,
             "max_chars": MAX_INPUT_CHARS,
             "structured_data": _structured_data(request, tool, faqs, page_url),
             "form_action": reverse("tool", args=[tool.slug]) if tool.slug else reverse("home"),

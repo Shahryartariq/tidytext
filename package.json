@@ -1,0 +1,12 @@
+{
+  "name": "tidytext-browser-tests",
+  "private": true,
+  "description": "Browser tests for TidyText's user flows. The site itself has no npm dependencies.",
+  "type": "module",
+  "scripts": {
+    "e2e": "node --test \"tests/e2e/*.test.mjs\""
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

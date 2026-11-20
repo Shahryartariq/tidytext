@@ -18,14 +18,26 @@ PERMISSIONS_POLICY = ", ".join(
 
 
 class SiteURLMiddleware:
-    """Sets request.site_url: the public base URL for canonical links and the sitemap."""
+    """
+    Sets request.site_url: the public base URL for canonical links and the sitemap.
+
+    When SITE_URL is set, every other host the app answers on (Vercel's per-deploy and
+    per-branch addresses) is marked noindex, so search engines only list the real address.
+    """
+
+    LOCAL_HOSTS = ("localhost", "127.0.0.1")
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         request.site_url = settings.SITE_URL or f"{request.scheme}://{request.get_host()}"
-        return self.get_response(request)
+        response = self.get_response(request)
+        site_host = settings.SITE_URL.split("://", 1)[-1].split("/", 1)[0].lower()
+        host = request.get_host().split(":", 1)[0].lower()
+        if site_host and host != site_host and host not in self.LOCAL_HOSTS:
+            response.setdefault("X-Robots-Tag", "noindex")
+        return response
 
 
 class SecurityHeadersMiddleware:

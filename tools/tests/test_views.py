@@ -12,7 +12,7 @@ class PageTests(SimpleTestCase):
     def test_home_renders_with_example_already_cleaned(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "<h1>Clean up messy text in seconds</h1>", html=True)
+        self.assertContains(response, "<h1>Clean up copied text</h1>", html=True)
         self.assertContains(response, 'rel="canonical" href="http://testserver/"')
         self.assertContains(response, "TidyText fixes it.")
 
@@ -106,6 +106,22 @@ class FormFallbackTests(SimpleTestCase):
     def test_too_long_text_is_rejected(self):
         response = self.client.post("/", {"text": "a" * (MAX_INPUT_CHARS + 1)})
         self.assertContains(response, "That text is too long", status_code=413)
+
+    def test_body_over_the_upload_limit_gets_the_form_with_a_message(self):
+        with self.settings(DATA_UPLOAD_MAX_MEMORY_SIZE=1000):
+            response = self.client.post("/", {"text": "a" * 5000})
+        self.assertContains(response, "That text is too long", status_code=413)
+        self.assertContains(response, "data-tool", status_code=413)
+
+    def test_non_latin_text_at_the_limit_fits_the_upload_cap(self):
+        # 200,000 Urdu letters are about 2.4 MB once the browser URL-encodes them.
+        response = self.client.post("/", {"text": "ک" * MAX_INPUT_CHARS})
+        self.assertEqual(response.status_code, 200)
+
+    def test_exploding_find_and_replace_is_refused(self):
+        response = self.client.post("/", {"text": "a" * 100_000, "find": "a", "replace": "b" * 1000})
+        self.assertContains(response, "Use a shorter replacement", status_code=413)
+        self.assertLess(len(response.content), 1_000_000)
 
     def test_bad_option_values_are_ignored(self):
         response = self.client.post("/", {"text": "Keep", "line_breaks": "x", "case": "y", "flags": "z"})
@@ -218,3 +234,20 @@ class AnalyticsTests(SimpleTestCase):
             self.assertIn("script-src 'self' https://www.googletagmanager.com", csp)
             self.assertNotIn("unsafe-inline", csp)
             self.assertContains(self.client.get("/privacy/"), "Google Analytics")
+
+
+@override_settings(SITE_URL="https://tidytext.example", ALLOWED_HOSTS=["tidytext.example", "preview.example"])
+class CanonicalHostTests(SimpleTestCase):
+    def test_the_public_address_is_indexable(self):
+        response = self.client.get("/", HTTP_HOST="tidytext.example")
+        self.assertFalse(response.has_header("X-Robots-Tag"))
+
+    def test_other_addresses_are_noindex(self):
+        response = self.client.get("/", HTTP_HOST="preview.example")
+        self.assertEqual(response["X-Robots-Tag"], "noindex")
+        self.assertContains(response, '<link rel="canonical" href="https://tidytext.example/">')
+
+    def test_sitemap_lists_the_public_address_from_any_host(self):
+        response = self.client.get("/sitemap.xml", HTTP_HOST="preview.example")
+        self.assertContains(response, "<loc>https://tidytext.example/</loc>")
+        self.assertNotContains(response, "preview.example")

@@ -9,6 +9,7 @@ TidyText is stateless: no database, no sessions, no cookies, no user accounts.
 
 import os
 import re
+import secrets
 import warnings
 from pathlib import Path
 
@@ -40,6 +41,11 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = "dev-only-insecure-key-do-not-use-in-production"
+    elif os.environ.get("VERCEL_ENV") == "preview":
+        # Pull request previews usually have no secrets configured. TidyText signs nothing
+        # (no sessions, cookies or tokens), so a random key per instance is safe there.
+        # Production still refuses to start without a real key.
+        SECRET_KEY = secrets.token_urlsafe(50)
     else:
         raise ImproperlyConfigured(
             "DJANGO_SECRET_KEY is not set. Generate one with `make secret` and add it to your "
@@ -128,7 +134,10 @@ STORAGES = {
     # Cache busting uses ?v=<build id>, added by the {% asset %} tag.
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
-WHITENOISE_MAX_AGE = 0 if DEBUG else 86400
+# Every page links to static files with ?v=<build id>, so a new deploy always gets new URLs and
+# the old copies can be cached for a year. Files referenced without it (the fonts, the icons in
+# site.webmanifest) must get a new file name if their content ever changes.
+WHITENOISE_MAX_AGE = 0 if DEBUG else 31536000
 if not STATIC_ROOT.exists():
     # No collectstatic output (local dev, tests, Vercel): serve straight from static/.
     WHITENOISE_USE_FINDERS = True
@@ -206,8 +215,10 @@ SILENCED_SYSTEM_CHECKS = [
     "security.W021",
 ]
 
-# Reject oversized form posts early (the formatter also enforces MAX_INPUT_CHARS).
-DATA_UPLOAD_MAX_MEMORY_SIZE = 1_048_576  # 1 MB
+# Reject oversized form posts early (the formatter also enforces MAX_INPUT_CHARS). 200,000
+# characters of non-Latin text (Urdu, Chinese) are 2-4 MB once the browser URL-encodes them,
+# so the cap leaves room for that. Vercel stops request bodies at 4.5 MB anyway.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 50
 
 # --- Logging ----------------------------------------------------------------

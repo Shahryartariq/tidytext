@@ -88,7 +88,15 @@ test-py: ## Run the Python tests
 
 .PHONY: test-js
 test-js: ## Run the JavaScript tests (Node 20+)
-	node --test tests/js/transforms.test.mjs
+	node --test "tests/js/*.test.mjs"
+
+.PHONY: e2e
+e2e: ## Run the browser flow tests against a running server (TIDYTEXT_URL, default :8000)
+	npm run e2e
+
+.PHONY: audit
+audit: ## Check the runtime dependencies for known vulnerabilities
+	$(BIN)/pip-audit --strict -r requirements.txt
 
 .PHONY: lint
 lint: ## Check code style and common bugs
@@ -106,7 +114,7 @@ check: ## Run Django's production deployment checks
 	  $(PY) manage.py check --deploy --fail-level WARNING
 
 .PHONY: ci
-ci: lint test check ## Everything CI runs: lint, tests, deploy checks
+ci: lint test check audit ## Lint, tests, deploy checks and dependency audit (CI also runs e2e)
 
 ##@ Docker
 
@@ -137,6 +145,7 @@ logs: ## Follow docker compose logs
 release: ci ## Tag a release: make release VERSION=1.0.1
 	@test -n "$(VERSION)" || (echo "Usage: make release VERSION=x.y.z" && exit 1)
 	@git diff --quiet || (echo "Commit your changes first." && exit 1)
+	@grep -q '^version = "$(VERSION)"' pyproject.toml || (echo "Set version = \"$(VERSION)\" in pyproject.toml first." && exit 1)
 	git tag -a v$(VERSION) -m "TidyText v$(VERSION)"
 	git push origin v$(VERSION)
 
